@@ -1,0 +1,104 @@
+---
+title: <h1 style="text-align:center;"> Interpreting Regression Models</h1>
+author: <h2 style="text-align:center;"><u>Kin cheung Leung</u></h2>
+output: html_document
+---
+<p style="color:blue""><b><u>Dataset Description:</u></b></p>
+
+<b>First dataset:</b>
+
+<p>The Pioneer Valley Planning Commission (PVPC) collected data north of Chestnut Street in Florence, MA for ninety days from April 5, 2005 to November 15, 2005. Data collectors set up a laser sensor, with breaks 
+in the laser beam recording when a rail-trail user passed the data </br>collection station.</p>
+
+<b>Format:</br></b>
+The data is a data frame with 90 observations on the following variables:
+
+1.hightemp daily high temperature (in degrees Fahrenheit)</br>
+2.lowtemp daily low temperature (in degrees Fahrenheit)</br>
+3.avgtemp average of daily low and daily high temperature (in degrees Fahrenheit)</br>
+4.spring indicator of whether the season was Spring</br>
+5.summer indicator of whether the season was Summer</br>
+6.fall indicator of whether the season was Fall</br>
+7.cloudcover measure of cloud cover (in oktas)</br>
+8.precip measure of precipitation (in inches)</br>
+9.volume estimated number of trail users that day (number of breaks recorded)</br>
+10.weekday indicator of whether the day was a non-holiday weekday</br>
+
+```{r,warning=FALSE,message=FALSE}
+library(mosaic)
+data(RailTrail)
+options(width = 100)
+head(RailTrail)
+```
+<b>Volume</b> is the response variable for your models as we know response variable means Dependent variable.</br>
+
+<b><u>Simple intercept model:</u></br></b>
+At first glance, it doesn't seem that studying regression without predictors would be very useful.The regression constant is also known as the intercept thus, regression models without predictors are also known as intercept only models.Linear Model With Only an Intercept that means </br> there are no predictor.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+model1 <- lm(volume  ~ 1, data = RailTrail)
+summary(model1)
+```
+
+
+Notice that the mean of the data is exactly the same as an intercept only model.
+
+```{r }
+mean(RailTrail$volume)
+```
+<b><u>One main term model:</u></br></b>
+<b>Avgtemp</b> which is one numeric variable to act as a main term in our model.
+```{r }
+model2 <- lm(volume  ~ avgtemp , data = RailTrail)
+summary(model2)
+```
+Avgtemp is explanatory variable here.
+R2, when expressed as a percent, represents the percent of variation in the dependent (predicted) variable y that can be explained by variation in the independent (explanatory) variable x using the regression (best-fit) line.Again, look at the coefficients for each variable - notice that being avgtemp has a much greater effect on a volume . The units of the coefficients again match the units of the volume variable, inches.
+
+Notce that the coefficient for avgtemp is positive <b>(0.399)</b>, which means there exists a positive relationship.
+
+<b>Coefficients</b>
+In simple or multiple linear regression, the size of the coefficient for each independent variable gives you the size of the effect that variable is having on your dependent variable, and the sign on the coefficient (positive or negative) gives you the direction of the effect. In regression with a single independent variable, the coefficient tells you how much the dependent variable is expected to increase (if the coefficient is positive) or decrease (if the coefficient is negative) when that independent variable increases by one. In regression with multiple independent variables, the coefficient tells you how much the dependent variable is expected to increase when that independent variable increases by one, holding all the other independent variables constant. Remember to keep in mind the units which your variables are measured in.Next, look at the R-squared values. The adjusted R-squared is 0.1822, which means that the model explains about 18.22% of the variance in the data.Next, let’s look at the p-values (Pr(>|t|)) of the t-test for the coefficients. This checks if the coefficients are different than 0. Both the intercept and the coefficient for father have p-values are 2.723e-05 - in other words, they are not significantly different.
+
+
+<b><u>Plot one main term model:</u></b>
+ We’ll add the points, and then we’ll add a line that fits the model.
+
+```{r pressure, echo=FALSE}
+ggplot(data=RailTrail, aes(x=avgtemp, y=volume)) +geom_point() +geom_abline(intercept =250, slope=0.3994)
+```
+
+<b><u>Categorical term model:</u></b>
+```{r }
+model3 <- lm(volume  ~ avgtemp+weekday  , data = RailTrail)
+summary(model3)
+```
+Avgtemp and weekday is explanatory variable here.
+Notice that the R-squared is greatly improved: 0.2476 of the variance in the data. Each of the p-values of the t-tests that test whether the coefficients are non-zero are also below 0.05. 0.05 is a standard, but arbitrary, cutoff for our p-values. Our F-statistic is also significant.Again, look at the coefficients for each variable - notice that being avgtemp and weekday has a much greater effect on a volume . The units of the coefficients again match the units of the volume variable, inches.
+
+<b><u>Categorical term models plot:</u></b>
+
+```{r, echo=FALSE}
+library(ggplot2)
+ggplot(data=RailTrail, aes(y=volume, x=avgtemp, xlab="avgtemp",ylab="volume"))+geom_point(aes(color=weekday))+geom_abline(intercept=250,slope=0.4278,col="blue",lwd=3)+geom_abline(intercept=34.461,slope=0.4278,col="red", lwd=3)
+```
+
+<b><u>Interaction term model:</u></b>
+```{r }
+model4 <- lm(volume  ~ avgtemp:hightemp, data = RailTrail)
+summary(model4)
+```
+Avgtemp:hightemp is explanatory variable here.
+Notice that the R-squared is greatly improved: 0.226 of the variance in the data. Each of the p-values of the t-tests that test.P values show statistical significant result between variables.
+
+<b><u>Problems with the model?:</u></b>
+```{r }
+model5<-lm(volume ~ hightemp + lowtemp + avgtemp,data=RailTrail)
+summary(model5)
+```
+NA as a coefficient in a regression indicates that the variable in question is linearly related to the other variables. In your case, this means that Q3=a×Q1+b×Q2+c for some a,b,c. If this is the case, then there's no unique solution to the regression without dropping one of the variables.
