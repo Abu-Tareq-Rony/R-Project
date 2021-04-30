@@ -1,0 +1,67 @@
+---
+title: "Time Series Analysis Using R"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Dataset Description:
+We used a dataset from Yahoo Finance's common stock price data for this study. Its popular and much important dataset for time series analysis of stock price prediction. Finance is a media property of the Yahoo! Network, which has been owned by Verizon Media since 2017. It offers stock quotes, press releases, financial reports, and original material, as well as financial news, data, and commentary. It also has several online resources for handling personal finances. For several exchanges, Yahoo Finance offers real-time streaming quotes. During trading hours on an exchange, and in some cases during pre-market and post-market hours, real-time data is available. When a red or green backdrop flashes behind the stock price, you'll know it's real-time.
+
+Install important packages.
+```{r cars,warning=FALSE,message=FALSE}
+library(quantmod)
+library(fpp)
+library(backtest)
+```
+
+Read dataset from yahoo finance.
+```{r carss,warning=FALSE,message=FALSE}
+spy <- getSymbols("SPY", from="2010-10-01", src="yahoo", auto.assign=F)
+head(spy)
+```
+Time series analysis plot:Once read a time series data into R, the next move is usually to make a plot of the time series data, We can make time series plot by using plot.ts() function in R.
+```{r pressurde}
+spy <- spy[1:1600,]
+adj <- spy[,6]
+plot.ts(spy[,6], main = "Adhusted Closing Price")
+```
+We can assume no kind of seasonality on this data. To confirm the seasonality, we can use various kind of approaches.    
+```{r pressurers}
+plot(spy[,6], main = "Estimation the trend of Closing Price")
+```
+
+
+
+Plot the detrended time series:
+```{r presssurssses}
+logr <- periodReturn(adj,period = "daily", type = "log", leading = TRUE)
+logr <- 1+logr
+head(logr)
+detrended<-diff(logr)
+plot(detrended)
+```
+
+Check seasonality of the data:
+This can then for example be used in the forecast packages auto.arima() function.
+```{r ppresssuresss}
+m1 <- auto.arima(logr, seasonal = FALSE)
+m1
+summary(m1)
+plot(forecast(m1,h=500))
+```
+
+Calculate the empirical autocorrelation function (acf) of the detrended series with R:
+```{r ppresssurses}
+par(mfrow = c(2,1))
+acf.logr = acf(logr, main='ACF Plot', lag.max=100)
+pacf.logr = pacf(logr, main='PACF Plot', lag.max=100)
+print(adf.test(logr))
+```
+
+interpretation of the acf plot:
+ACF and PACF plots to decide whether or not to go with ARIMA model. 
+We 	know 	that 	A 	correlogram 	(also 	called 	Auto 	Correlation 	Function ACF.
+Plot or Autocorrelation plot) is a visual way to show serial correlation in data that changes over time (i.e. time series data). and partial correlation is a conditional correlation. It is the correlation between two variables under the assumption that we know and take into account the values of some other set of variables. The ACF and PACF shown in the figure above respectively. 
