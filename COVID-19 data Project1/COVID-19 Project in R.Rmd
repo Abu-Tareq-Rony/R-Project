@@ -1,0 +1,171 @@
+---
+title: "COVID-19 data analysis using R"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+COVID-19 is a contagious disease caused by severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2). The coronavirus created a pandemic which continues to have a major impact on the health and economies of communities across the globe. 
+
+Dataset Description:
+To answer the italicised question  we have worked a real dataset, covid_19_dataset.csv, which includes data on approximately 150,000 people in November and December of the year 2020. The fields of the dataset are the following:
+•	test_date : The date in which the person received the COVID-19 test.
+•	cough : binary variable which equals 1 if the person has a cough.
+•	fever : binary variable which equals 1 if the person has a fever.
+•	sore_throat : binary variable which equals 1 if the person has a sore throat.
+•	shortness_of_breath : binary variable which equals 1 if the person has stated that they are having shortness of breath.
+•	corona_result: variable which equals positive if the test came back positive, negative if the test came back negative, and other if the the result was inconclusive.
+•	age_60_and_above: binary variable which equals No or Yes.
+•	gender: The dataset includes a self-reported value of male or female.
+
+Install basic packages  for analysis
+```{r carss,warning=FALSE,message=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+```
+
+Read Dataset:
+```{r cars}
+library(readr)
+dataset <- read_csv("dataset.csv")
+```
+
+(a)	How many people in this dataset tested positive for COVID-19? How many tested negative for COVID-19? Offer a possible explanation for the large difference between these numbers.
+
+```{r 4}
+covid <- dataset %>% 
+  mutate(corona_result = recode(corona_result,
+                                "negative" = "0",
+                                "positive" = "1",
+                                "other" = "2"))
+table(dataset$corona_result)
+```
+
+(b)	In preparation for our analysis, create a new dataset which removes any observations which satisfy corona_result = other. For the remaining observations, convert corona_result into a numeric variable that equals the number 1 if the person tested positive and 0 otherwise. Finally, remove any observations with missing values for age_60_and_above and gender.
+
+```{r parsss}
+covid <- dataset %>% 
+  mutate(corona_result = recode(corona_result,
+                                "negative" = "0",
+                                "positive" = "1",
+                                "other" = "2")) %>% 
+  filter(corona_result != "2")
+table(covid$corona_result)
+```
+
+Finally, remove any observations with missing values for age_60_and_above and gender.
+
+```{r kas}
+library(tidyverse)
+df <- dataset %>% 
+  filter(corona_result != "other", age_60_and_above != "", gender != "")
+df <- df[,-1]
+df[] <- lapply(df,factor)
+```
+
+
+Remove missing value
+```{r pressss}
+newdata <- na.omit(covid)
+newdata
+head(newdata)
+```
+
+
+(c)	Randomly split the data into a train and test set, with approximately 90% of the data in the train set. Make sure that the train and test set preserve the relative ratio of positive to negative cases Hint: Use the sample.split() function from the caTools library.
+
+```{r pressssuree}
+set.seed(123)
+library(caTools)
+smp_size <- floor(0.90 * nrow(newdata))
+train_ind <- sample(seq_len(nrow(newdata)), size = smp_size)
+train <- dataset[train_ind, ]
+test <- dataset[-train_ind, ]
+train
+test
+```
+
+
+Logistic Regression:
+Build a logistic regression model from the training set using the glm() function to predict whether a person is positive for COVID-19.
+```{r psressureea}
+result<-as.numeric(newdata$corona_result)
+head(newdata)
+model <- glm(result~fever+cough+sore_throat +shortness_of_breath+head_ache , poisson(),data=newdata)
+```
+
+Report the confusion matrix of your logistic regression model on the train set when the threshold is set to 0.5. Compute the accuracy, true positive rate, and false positive rate for the model.
+
+```{r pressursessea}
+anova(model, test = 'Chisq')
+pred<-ifelse(predict(model,type='response')>0.5,1,0)
+table(pred)
+```
+
+We find 141716 true positive value and 1 false positve value for our model.
+the logistic regression model is overfitting the data?
+Yes.modeling error that occurs when a function is too closely fit to a limited set of data points.Besides models the training data too well.This means that the noise or random fluctuations in the training data is picked up and learned as concepts by the model. The problem is that these concepts do not apply to new data and negatively impact the models ability to generalize
+
+This model would be useful in real life? 
+No.The model is not useful as the class of the dataset is not balanced.So there are imbalaced problem in the output class and thats why our model cannot predict well for new data.So after all we can say that the model would not be useful in real life.
+
+Plot the ROC curve of your logistic regression model on the test set using the ROCR library.
+
+
+```{r pressureg, echo=FALSE}
+library(ROCR) 
+library(Metrics)
+plot(pred,xlim=c(-2,10))
+```
+Coefficients of your logistic regression model
+
+```{r pssurseeassss}
+summary(model)
+```
+Odds of testing positive for COVID-19
+First we calculate odds and then we calculted odds ratios with 95% Confidence interval.
+```{r pssurseeass}
+exp(coef(model))
+exp(cbind(OR = coef(model), confint(model)))
+```
+
+3.	Decision Tree:
+```{r pressussssssssssssssssre, echo=FALSE}
+library(tidyverse)
+df <- df %>% 
+  filter(corona_result != "other", age_60_and_above != "", gender != "")
+df <- df[,-1]
+df[] <- lapply(df,factor)
+str(df)
+library(rpart)
+library(rpart.plot)
+model <- rpart(corona_result ~ ., data = df, method = 'class', 
+               control = rpart.control(cp = 0.001))
+rpart.plot(model, fallen.leaves = F)
+```
+
+
+What independent variables does the tree reveal are most important in accurately predicting whether someone has COVID-19?
+For Finding this answer we calculate variable importance from our decision tree model.
+```{r vsi}
+vi_tree <- model$variable.importance
+vi_tree
+```
+As long as they're small, decision trees are really easy to understand. With depth, the number of terminal nodes rapidly increases. The deeper the tree and the more terminal nodes there are, the more difficult it is to grasp the tree's decision laws. A depth of one indicates the presence of two terminal nodes.
+
+Use 5-fold cross validation:
+```{r vsk}
+library(caret)
+ model2<- train(
+  corona_result ~ .,
+  data = newdata,
+  method = "rpart",
+  trControl = trainControl(method = "cv", number = 5))
+```
+4.a)	Concluding Questions:
+When evaluating models in this assignment, however, we likely found that that the true positive rates in your models was typically quite poor when using a threshold of 0.5.Its due to imbalance output class.We see that maximum class are negative there.That is why TPR is so poor and we cannot use it for future prediction.
+
+b)The model predicted a 0.90 auROC (area under the receiver operating characteristic curve) for the prospective test range, with a 95 percent confidence interval of 0.892–0.905. The potential working points based on predictions from the test set are: 87.30 percent sensitivity and 71.98 percent specificity, or 85.76 percent sensitivity and 79.18 percent specificity.When a COVID-19 diagnosis was compared to sensitivity, the PPV (positive predictive value) was 0.66, with a 95 percent confidence interval of 0.647–0.678. The metrics from all of the ROC curves in this analysis were determined and are available here.
