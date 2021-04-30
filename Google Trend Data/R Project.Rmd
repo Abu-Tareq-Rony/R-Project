@@ -1,0 +1,125 @@
+---
+title: "Analysis in R"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+How will you read the data into R for analysis?
+Dataset Sources: Google Trend Data is information gleaned from a Wikipedia page. The data in Trends is a random sample of our Google search data. It's anonymized (no one's identity is revealed), classified (the subject of a search query is determined), and aggregated (grouped together). Google Trends is a Google website that analyzes the popularity of top Google Search queries in different regions. We connect gtrends_TinderPremium.csv data with another source of data that is Tinder_IAPrM.csv.
+
+
+Read library:
+```{r cars,warning=FALSE,message=FALSE}
+library(dplyr)
+```
+
+Read datasets
+```{r}
+df <- read.csv("gtrends_TinderPremium.csv", skip = 2)
+df2 <- read.csv("Tinder_IAPrM.csv", skip = 2)
+```
+
+Pre-Precess datasets for merge it into one dataset
+```{r}
+df$Months <- format(as.Date(df$Week, format="%Y-%m-%d"), "%Y-%m")
+
+df <- df %>% 
+  group_by(Months) %>% 
+  summarize(`Tinder Premium` = sum(Tinder.Premium...Worldwide.))
+df2 <- df2 %>% rename(Months = X)
+```
+
+Merge dataset using merge function and then remove null value from our dataset.
+```{r}
+df3 <- merge(x=df, y=df2, by="Months")
+data <- na.omit(df3)                           
+head(data)
+```
+
+Select dependent and indipendent variable from final dataset
+```{r}
+x<-as.numeric(as.factor(data$`Tinder Premium`))
+x
+y<-as.numeric(as.factor(data$SUM))
+y
+```
+
+Methods and Results:
+What statical method will you use to analyse the data?
+I will use correlation and regression to analyse the data and seek the correlation between variables
+To conduct a regression analysis, the following assumptions will be applied:
+X: The number of searches for "Tinder Premium"
+Y: SUM from dataset.</br>
+1. There are signification correlation between X and Y
+2. The underlying data is normally distributed.
+
+
+Which R functions will you use to carry out the statistical analysis?
+Calculate Pearson’s correlation coefficient to test for significant correlation between two 
+variables.
+
+```{r}
+cor.test(x, y)
+```
+
+Interpreting result: 
+
+The correlation coefficient, abbreviated as r, is a measure of the strength of a linear or straight-line relationship between two variables. A positive linear relationship between variables is indicated by values between 0.37. Where sample size (degrees of freedom) is 60.
+
+
+Testing for data normality
+
+
+```{r}
+library(ggplot2)
+ggplot(data=data, aes(x=x)) + stat_bin(bins = 30)
+```
+
+
+Interpreting result: 
+A perfectly smooth normal curve will be unlikely to emerge from a histogram of sample data, particularly if the sample size is small. A parametric test can be used if the data is roughly normally distributed, with a peak in the middle and is fairly symmetrical.
+
+
+Check if the data is normally distributed?
+```{r}
+shapiro.test(x)
+```
+Result: p-value is less then .05 that means its statistically significant. For normality tests, the Shapiro-method is commonly recommended because it has more power. It is based on a correlation between the data and the normal scores that correspond to it.
+
+Calculate Kendall’s tau
+```{r}
+cor.test(x, y, method="kendall")
+
+```
+
+Interpretation Result: 
+tau is the Kendall correlation coefficient. The correlation coefficient between x and y are 0.2880596and the p-value is 0.0009511. Which indicates significant result.
+
+Boxplot:
+```{r}
+boxplot(x,y,col = "gray")
+```
+Interpreting Result:
+The line that separates the box into two sections shows the median (middle quartile), which is the mid-point of the data. Half of the scores are higher than or equal to this value, while the other half are lower. The middle "box" reflects the group's middle 50 percent of scores.
+Build a regression model.
+```{r}
+Model <- lm(y ~ x, data=data)
+summary(Model)
+```
+
+
+Interpreting model: The lm() function in R was used to construct the model above, and the summary() function on the model was used to call the output. The intercept and slope terms in the model are expressed by the coefficients, which are two unknown constants. We would estimate the coefficients to use in the model formula if we wanted to predict the Y needed for X. In other words, 0.3985 is needed. The slope, or in our case, the second row in the Coefficients, is the second row. A small p-value suggests that a relationship between the predictor and response variables is unlikely to be observed. The p-values in our model example are very close to zero, indicating that the relationship between variables is important.
+
+Regression model plot:
+```{r}
+plot(Model)
+```
+
+Interpretation of model Plot: The most common plot generated during a residual analysis is a "residuals versus fits plot." On the y axis are residuals, and on the x, axis is fitted values (estimated responses). Non-linearity, unequal error variances, and outliers are all detected using this plot.
+ A scatterplot generated by plotting two sets of quantiles against each other is known as a Q-Q plot. If both sets of quantiles came from the same distribution, the points should form an approximately straight line. When both sets of quantiles actually come from Normal distributions, this is an example of a Normal Q-Q plot.
+And then scale-location diagram shows the fitted values of a regression model on the x-axis and the square root of the standardized residuals on the y-axis.
+
+
+
